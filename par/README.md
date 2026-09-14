@@ -15,6 +15,8 @@ python par/test_par.py       # 12개 검증 (백테스트 기지값 + 인과성)
 python par/par.py            # A층: 모델 3종 백테스트          (~30초)
 python par/observability.py  # C'층: 57 PDU 리스크 테이블       (~15초)
 python par/report.py         # 그림 2종 + RESULTS.md          (~100초)
+python par/fleet.py          # 함대층: 다중 유닛·다중 센서 ML   (~70초)
+python par/test_fleet.py     # 6개 검증 (누출·결합·주입 항등식)
 ```
 
 **인증·과금·gcloud SDK 불필요.** 버킷 `powerdata_2019`가 평문 HTTPS로
@@ -50,6 +52,7 @@ BigQuery는 Phase 2(워크로드 조인)에만 필요하다.
 | **A. PaR** | 용량 한계까지 여유가 얼마나 | 로컬 | 즉시 가능 |
 | **C′. 관측 리스크** | 그 숫자를 믿을 수 있나 | 로컬 | 즉시 가능 |
 | **B. Component VaR** | 어떤 부하가 리스크를 만드나 | BigQuery | Phase 2 |
+| **F. 함대** | 여러 대를 묶으면 ML이 더 잘하나 | 로컬 | 즉시 가능 |
 
 ## 파일
 
@@ -64,6 +67,9 @@ BigQuery는 Phase 2(워크로드 조인)에만 필요하다.
 | [observability.py](observability.py) | C′층 — 관측 점수 → 마진 가산 → 리스크 테이블 |
 | [report.py](report.py) | 그림 + RESULTS.md 생성 |
 | [test_par.py](test_par.py) | 12개 검증 — 통계 기지값과 인과성 |
+| [FLEET.md](FLEET.md) | F층 결과표 — 다중 유닛·다중 센서 ML (자동 생성) |
+| [fleet.py](fleet.py) | F층 — 결합·예측·램프·가상센서·군집화 |
+| [test_fleet.py](test_fleet.py) | 6개 검증 — 교차 유닛 피처 누출 방지 |
 
 ## 핵심 결과
 
@@ -75,3 +81,18 @@ BigQuery는 Phase 2(워크로드 조인)에만 필요하다.
 | 경보 시간의 대가 | 6시간 경보 시 한도 38.4% → 25.1% |
 
 전체는 [RESULTS.md](RESULTS.md), 해석은 [SPEC.md §10](SPEC.md).
+
+## 함대층 핵심 결과
+
+| 발견 | 값 |
+|---|---|
+| 유효 독립 유닛 수 | 57대가 **11.3대**처럼 움직인다 (5분 증분 기준) |
+| 필요 부하추종 여력 | 독립 가정 대비 **2.6배** (1시간 램프는 3.0배) |
+| 교차 유닛 피처의 순이득 | GBM MAE −3.8~−6.0%, 57대 중 45~54대 개선 |
+| 단, 선형 모델은 못 쓴다 | `ridge_fleet`는 `ridge_solo`를 이기지 못한다 — 신호가 비선형 |
+| 램프 사전 탐지 | ROC-AUC 0.83~0.89, 상위 알람 정밀도 22~33% (기저율 0.7%) |
+| 가상센서 복원 | R² 중앙값 0.955, 54/57대 유효 |
+| 주입 고장 탐지 | stuck 98%, bias 2%p 93% (오경보 1건/대·일) |
+| 무라벨 군집화 | ARI 0.710 vs 실제 사이트 (무작위 상한 0.048) |
+
+전체는 [FLEET.md](FLEET.md).
